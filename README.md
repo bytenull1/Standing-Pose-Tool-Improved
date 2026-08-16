@@ -45,7 +45,7 @@ Try disabling addons that make changes to the C-menu or UI elements.
 ### How i can change who's allowed to Mass Pose, or the spawn limit?
 Those are server settings, so they can only be changed from the server console or server.cfg (ragdollstand_mass_access, ragdollstand_mass_limit).
 
-### <Addon name> is incompatible with this.
+### (Addon name) is incompatible with this.
 Please report it in the appropriate discussion thread or in Github issues, and I'll see what can be done about it. But i cannot make any promises.
 
 ### Is there any way I can improve the addon code?
