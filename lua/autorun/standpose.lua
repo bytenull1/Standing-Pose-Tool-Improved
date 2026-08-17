@@ -469,9 +469,9 @@ end
 if CLIENT then
     local color_invisible = Color(0, 0, 0, 0)
     local angle_zero = Angle(0, 0, 0)
+    local DUMMY_PARK_POS = Vector(0, 0, -32000)
 
     -- Pool of reusable invisible dummy models
-    -- Raised from 48 to 64, cheap headroom above the mass-pose limit (36)
     StandPose.EntPool = StandPose.EntPool or {}
     local MAX_POOL_SIZE = 64
 
@@ -493,6 +493,7 @@ if CLIENT then
             ent:ResetSequence(0)
             ent:SetCycle(0)
 
+            ent:SetNoDraw(true)
             ent:DrawShadow(false)
 
             return ent
@@ -503,9 +504,9 @@ if CLIENT then
 
         ent:SetRenderMode(RENDERMODE_TRANSALPHA)
         ent:SetColor(color_invisible)
-        if ent.SetIK then ent:SetIK(false) end
-
+        ent:SetNoDraw(true)
         ent:DrawShadow(false)
+        if ent.SetIK then ent:SetIK(false) end
 
         return ent
     end
@@ -518,6 +519,8 @@ if CLIENT then
             ent:Remove()
             return
         end
+
+        ent:SetPos(DUMMY_PARK_POS)
 
         table.insert(StandPose.EntPool, ent)
     end
