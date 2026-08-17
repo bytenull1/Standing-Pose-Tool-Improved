@@ -1,7 +1,7 @@
 # Standing Pose Tool Improved
 This tool can pose a ragdoll to its model pose, which usually is a standing pose for ragdolls. It does not work properly with all ragdolls, but for most of them it does.
 
-## FEATURES:
+## Features:
 - Automatically set the pose when spawning a ragdoll (does not affect saves, duplicates, or advdupe2).
 - Select a standard pose (default, idle pose, relaxed stance, crossed arms, hands in pockets).
 - Adjust the angle at which the ragdoll is positioned.
