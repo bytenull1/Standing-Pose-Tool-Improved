@@ -288,38 +288,6 @@ if SERVER then
         end)
     end)
 
-    local propt = {}
-    propt.MenuLabel = "Stand Pose"
-    propt.Order = 5000
-
-    propt.Filter = function(self, ent, ply)
-        if not IsValid(ent) or ent:GetClass() ~= "prop_ragdoll" then return false end
-        return hook.Run("CanProperty", ply, "standpose", ent) ~= false
-    end
-
-    propt.Action = function(self, ent)
-        self:MsgStart()
-        net.WriteEntity(ent)
-        self:MsgEnd()
-    end
-
-    propt.Receive = function(self, length, player)
-        local rag = net.ReadEntity()
-        if not IsValid(rag) or rag:GetClass() ~= "prop_ragdoll" then return end
-        if not IsValid(player) or not properties.CanBeTargeted(rag, player) then return end
-        if not self:Filter(rag, player) then return end
-
-        local hpos, angle = StandPose.CalculatePlacement(player, rag, rag:GetPos())
-        local useBBox  = player:GetInfoNum("ragdollstand_use_bbox", 1) == 1
-
-        local useAnim = player:GetInfoNum("ragdollstand_use_anim_mode", 0) == 1
-        local poseMode = useAnim and player:GetInfoNum("ragdollstand_anim_mode", 4) or 0
-
-        StandPose.Request(rag, player, hpos, angle, poseMode, useBBox)
-    end
-
-    properties.Add("standpose", propt)
-
     -- Mass Pose Handler
     -- Uses a single repeating timer.Create that processes one model per tick,
     -- instead of timer.Simple per model
@@ -465,6 +433,40 @@ if SERVER then
         end
     end)
 end
+
+-- C-menu option
+local propt = {}
+propt.MenuLabel = "Stand Pose"
+propt.Order = 5000
+
+propt.Filter = function(self, ent, ply)
+    if not IsValid(ent) or ent:GetClass() ~= "prop_ragdoll" then return false end
+    return hook.Run("CanProperty", ply, "standpose", ent) ~= false
+end
+
+propt.Action = function(self, ent)
+    self:MsgStart()
+    net.WriteEntity(ent)
+    self:MsgEnd()
+end
+
+if SERVER then
+    propt.Receive = function(self, length, player)
+        local rag = net.ReadEntity()
+        if not IsValid(rag) or rag:GetClass() ~= "prop_ragdoll" then return end
+        if not IsValid(player) or not properties.CanBeTargeted(rag, player) then return end
+        if not self:Filter(rag, player) then return end
+
+        local hpos, angle = StandPose.CalculatePlacement(player, rag, rag:GetPos())
+        local useBBox  = player:GetInfoNum("ragdollstand_use_bbox", 1) == 1
+        local useAnim = player:GetInfoNum("ragdollstand_use_anim_mode", 0) == 1
+        local poseMode = useAnim and player:GetInfoNum("ragdollstand_anim_mode", 4) or 0
+
+        StandPose.Request(rag, player, hpos, angle, poseMode, useBBox)
+    end
+end
+
+properties.Add("standpose", propt)
 
 if CLIENT then
     local color_invisible = Color(0, 0, 0, 0)
