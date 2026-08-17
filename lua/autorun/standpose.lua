@@ -493,6 +493,8 @@ if CLIENT then
             ent:ResetSequence(0)
             ent:SetCycle(0)
 
+            ent:DrawShadow(false)
+
             return ent
         end
 
@@ -502,6 +504,8 @@ if CLIENT then
         ent:SetRenderMode(RENDERMODE_TRANSALPHA)
         ent:SetColor(color_invisible)
         if ent.SetIK then ent:SetIK(false) end
+
+        ent:DrawShadow(false)
 
         return ent
     end
