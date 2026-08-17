@@ -11,7 +11,7 @@ This tool can pose a ragdoll to its model pose, which usually is a standing pose
 - Rewritten network and security improvements.
 - Other bug fixes and additional checks.
 
-## Difference between Legacy Pose and Animation Pose:
+## Difference between modes:
 
 Legacy pose - the model's own bind pose as specified during compilation. it's simply what the model looks like by default (A-pose or T-pose), just like in the previous version of the addon.
 
