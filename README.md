@@ -8,6 +8,7 @@ This tool can pose a ragdoll to its model pose, which usually is a standing pose
 - Choice between spawning exactly on the ground or based on the bounding box.
 - Proper handling of the Strider and other synth ragdolls, as well as ragdolls with IK, like classic zombie.
 - Mass pose every model in a folder at once, in a line, column, or grid formation.
+- Compatible with Ragdoll Resizer.
 - Rewritten network and security improvements.
 - Other bug fixes and additional checks.
 

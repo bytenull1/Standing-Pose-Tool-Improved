@@ -168,7 +168,6 @@ if SERVER then
         return hpos, ang
     end
 
-    -- Reduced from 60 (~6s) to 30 (~3s)
     local MAX_REQUEST_RETRIES = 30
 
     function StandPose.Request(rag, ply, targetPos, targetAng, poseMode, useBBox)
@@ -535,8 +534,37 @@ if CLIENT then
         StandPose.EntPool = {}
     end)
 
-    -- Reduced from 60 (~6s) to 30 (~3s)
     local MAX_POSE_RETRIES = 30
+
+    -- Ragdoll Resizer compatibility
+    -- -------------------------------------------------------------------------
+    -- Scale each bone's offset from targetPos/Ang by its .scalevec for
+    -- ground clearance and final server-bound bone data
+    local vector_one = Vector(1, 1, 1)
+
+    -- True once Ragdoll Resizer is detected, before its scale data arrives
+    local function IsResizedRagdoll(rag)
+        return rag.ClassOverride == "prop_resizedragdoll_physparent"
+    end
+
+    -- Looks up the resize scale for a given bone ID from the
+    -- client-side rag.PhysBones table, falling back to no scaling
+    local function GetBoneResizeScale(rag, boneID)
+        local physBones = rag.PhysBones
+        if not physBones then return nil end
+        local entry = physBones[boneID]
+        return entry and entry.scalevec
+    end
+
+    local function ScaleOffsetFromOrigin(worldPos, targetPos, targetAng, scaleVec)
+        if not scaleVec then return worldPos end
+        if scaleVec.x == 1 and scaleVec.y == 1 and scaleVec.z == 1 then return worldPos end
+
+        local localPos = WorldToLocal(worldPos, angle_zero, targetPos, targetAng)
+        localPos = Vector(localPos.x * scaleVec.x, localPos.y * scaleVec.y, localPos.z * scaleVec.z)
+        return LocalToWorld(localPos, angle_zero, targetPos, targetAng)
+    end
+    -- -------------------------------------------------------------------------
 
     net.Receive("StandPose_Request", function()
         local ragIndex = net.ReadUInt(16)
@@ -560,6 +588,16 @@ if CLIENT then
             -- Ensure engine has streamed bone data and physics map
             local testPhysBone = rag:TranslatePhysBoneToBone(0)
             if rag:GetBoneCount() == 0 or not rag:GetBoneMatrix(0) or (physCount > 0 and (not testPhysBone or testPhysBone < 0)) then
+                if retries < MAX_POSE_RETRIES then
+                    timer.Simple(0.1, function() AttemptPose(retries + 1) end)
+                end
+                return
+            end
+
+            -- Wait for server PhysBones on resized ragdolls, else
+            -- posing early falls back to unscaled pose
+            local isResized = IsResizedRagdoll(rag)
+            if isResized and not rag.PhysBones then
                 if retries < MAX_POSE_RETRIES then
                     timer.Simple(0.1, function() AttemptPose(retries + 1) end)
                 end
@@ -602,10 +640,13 @@ if CLIENT then
                 -- Calculate absolute floor Z to prevent clipping
                 -- if useBBox, use WorldSpaceAABB otherwise scan bones once
                 -- and cache matrices for the validBones loop
+                --
+                -- Resized ragdolls skip useBBox. WorldSpaceAABB() is unscaled
+                -- and under-measures, so scan physID
                 local minZOffset = 0
                 local boneMatrixCache = nil
 
-                if useBBox then
+                if useBBox and not isResized then
                     local min = ent:WorldSpaceAABB()
                     minZOffset = targetPos.z - min.z
                 else
@@ -614,12 +655,16 @@ if CLIENT then
 
                     if numBones > 0 then
                         boneMatrixCache = {}
+
                         for b = 0, numBones - 1 do
                             local matrix = ent:GetBoneMatrix(b)
                             if matrix then
                                 boneMatrixCache[b] = matrix
-                                local z = matrix:GetTranslation().z
-                                if z < lowestZ then lowestZ = z end
+                                local pos = matrix:GetTranslation()
+                                if isResized then
+                                    pos = ScaleOffsetFromOrigin(pos, targetPos, targetAng, GetBoneResizeScale(rag, b))
+                                end
+                                if pos.z < lowestZ then lowestZ = pos.z end
                             end
                         end
                     end
@@ -658,9 +703,17 @@ if CLIENT then
                     if b and b >= 0 then
                         local matrix = (boneMatrixCache and boneMatrixCache[b]) or ent:GetBoneMatrix(b)
                         if matrix then
+                            -- Scale this bone's offset from the placement origin by its
+                            -- resize scale (if any) before applying the ground offset
+                            local pos = matrix:GetTranslation()
+                            if isResized then
+                                pos = ScaleOffsetFromOrigin(pos, targetPos, targetAng, GetBoneResizeScale(rag, b))
+                            end
+                            pos = pos + posOffset
+
                             table.insert(validBones, {
                                 physID = i,
-                                pos = matrix:GetTranslation() + posOffset,
+                                pos = pos,
                                 ang = matrix:GetAngles()
                             })
                         end
